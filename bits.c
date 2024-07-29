@@ -221,7 +221,7 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  return 2;
+    return ((~(!!x) + 1) & y) | ((!!x - 1) & z);
 }
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
@@ -231,7 +231,11 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return 2;
+  int X = x >> 31;
+  int Y = y >> 31;
+  int same = !(X ^ Y);
+  int dif = x + (~y) + 1;
+  return (same & ((dif >> 31) | !dif)) | (X & !Y);
 }
 //4
 /* 
@@ -243,7 +247,7 @@ int isLessOrEqual(int x, int y) {
  *   Rating: 4 
  */
 int logicalNeg(int x) {
-  return 2;
+    return ~(((~x + 1) | x) >> 31) & 0x1;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
@@ -258,7 +262,24 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-  return 0;
+    int sign = x >> 31;
+    x = (x & ~sign) | (~x & sign); // Normalize x to be positive if it's negative
+
+    int b16, b8, b4, b2, b1, b0;
+
+    b16 = !!(x >> 16) << 4;
+    x >>= b16;
+    b8 = !!(x >> 8) << 3;
+    x >>= b8;
+    b4 = !!(x >> 4) << 2;
+    x >>= b4;
+    b2 = !!(x >> 2) << 1;
+    x >>= b2;
+    b1 = !!(x >> 1);
+    x >>= b1;
+    b0 = x;
+
+    return b16 + b8 + b4 + b2 + b1 + b0 + 1;
 }
 //float
 /* 
@@ -273,7 +294,24 @@ int howManyBits(int x) {
  *   Rating: 4
  */
 unsigned floatScale2(unsigned uf) {
-  return 2;
+  unsigned sign = uf & 0x80000000;
+  unsigned e = (uf >> 23) & 0xFF;
+  unsigned f = uf & 0x7FFFFF;
+
+  if (e == 0xff)
+    return uf;
+  if (e == 0){
+      f <<= 1;
+      if (f & 0x800000){
+        e = 1;
+        f &= 0x7FFFFF;
+      }
+  } else {
+      e += 1;
+      if (e == 0xFF)
+        f = 0;
+  }
+  return sign | (e << 23) | f;
 }
 /* 
  * floatFloat2Int - Return bit-level equivalent of expression (int) f
@@ -288,7 +326,27 @@ unsigned floatScale2(unsigned uf) {
  *   Rating: 4
  */
 int floatFloat2Int(unsigned uf) {
-  return 2;
+  unsigned sign = uf & 0x80000000;
+  unsigned e = (uf >> 23) & 0xFF;
+  unsigned f = uf & 0x7FFFFF;
+  
+  if (e == 0xFF)
+    return 0x80000000u;
+    
+  if (e == 0)
+    return 0;
+  
+  int ret = (f | 0x800000);
+  int exp = e - 127;
+  
+  if (exp < 0)
+    return 0;
+  if (exp < 23)
+    ret = ret >> (23 - exp);
+  else
+    ret = ret << (exp - 23);
+  
+  return sign?-ret:ret;
 }
 /* 
  * floatPower2 - Return bit-level equivalent of the expression 2.0^x
@@ -304,5 +362,12 @@ int floatFloat2Int(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatPower2(int x) {
-    return 2;
+    int E = x + 127;
+    if (E < 0)
+      return 0;
+    if (E > 255)
+      E = 255;
+    unsigned ret = 0;
+    ret = ret | (E << 23);
+    return ret;
 }
