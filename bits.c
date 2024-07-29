@@ -326,27 +326,26 @@ unsigned floatScale2(unsigned uf) {
  *   Rating: 4
  */
 int floatFloat2Int(unsigned uf) {
-  unsigned sign = uf & 0x80000000;
-  unsigned e = (uf >> 23) & 0xFF;
-  unsigned f = uf & 0x7FFFFF;
-  
-  if (e == 0xFF)
-    return 0x80000000u;
+  unsigned sign = uf & 0x80000000;   // Extracting sign bit
+  unsigned e = (uf >> 23) & 0xFF;    // Extracting exponent bits
+  unsigned f = uf & 0x7FFFFF;        // Extracting fraction bits
     
   if (e == 0)
-    return 0;
+    return 0;                        // If exponent is all 0s, return 0 (denormalized number case)
   
-  int ret = (f | 0x800000);
-  int exp = e - 127;
+  int ret = (f | 0x800000);          // Creating the mantissa with the implicit 1
+  int exp = e - 127;                 // Calculating the actual exponent value
   
   if (exp < 0)
-    return 0;
+    return 0;                        // If exponent is negative, return 0 (less than 1)
+  if (exp >= 32)
+    return 0x80000000;
   if (exp < 23)
-    ret = ret >> (23 - exp);
+    ret = ret >> (23 - exp);         // Right shift if exponent is less than 23
   else
-    ret = ret << (exp - 23);
+    ret = ret << (exp - 23);         // Left shift if exponent is greater than or equal to 23
   
-  return sign?-ret:ret;
+  return sign ? -ret : ret;          // Applying the sign to the result
 }
 /* 
  * floatPower2 - Return bit-level equivalent of the expression 2.0^x
